@@ -1,0 +1,18 @@
+# Binaries
+bin/
+bot
+
+# Environment — never commit real credentials
+.env
+
+# Go build cache
+*.test
+*.out
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+*.swp

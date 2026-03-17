@@ -1,0 +1,270 @@
+package tools
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"github.com/conductorone/prospecting-bot/internal/config"
+)
+
+const sfAPIVersion = "v59.0"
+
+func sfGet(ctx context.Context, cfg *config.Config, soql string) (map[string]any, error) {
+	if cfg.SFInstanceURL == "" || cfg.SFAccessToken == "" {
+		return nil, fmt.Errorf("Salesforce not configured: set SF_INSTANCE_URL and SF_ACCESS_TOKEN")
+	}
+	endpoint := fmt.Sprintf("%s/services/data/%s/query?q=%s", cfg.SFInstanceURL, sfAPIVersion, url.QueryEscape(soql))
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+cfg.SFAccessToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return nil, fmt.Errorf("Salesforce auth failed (401): SF_ACCESS_TOKEN may be expired — reconnect or refresh the token")
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("Salesforce API error %d: %s", resp.StatusCode, truncate(string(body), 300))
+	}
+
+	var result map[string]any
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("failed to parse Salesforce response: %w", err)
+	}
+	return result, nil
+}
+
+// SearchAccounts queries Salesforce for accounts matching the given name query.
+func SearchAccounts(ctx context.Context, cfg *config.Config, query string) (string, error) {
+	// Escape single quotes in the query to prevent SOQL injection
+	safe := strings.ReplaceAll(query, "'", "\\'")
+	soql := fmt.Sprintf(
+		"SELECT Id, Name, NumberOfEmployees, LastActivityDate, Industry, BillingState, BillingCountry, Website FROM Account WHERE Name LIKE '%%%s%%' ORDER BY LastActivityDate DESC NULLS LAST LIMIT 20",
+		safe,
+	)
+
+	result, err := sfGet(ctx, cfg, soql)
+	if err != nil {
+		return "", err
+	}
+
+	records := extractRecords(result)
+	if len(records) == 0 {
+		return fmt.Sprintf("No Salesforce accounts found matching '%s'.", query), nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Salesforce accounts matching '%s' (%d results):\n\n", query, len(records)))
+	for _, rec := range records {
+		sb.WriteString(fmt.Sprintf("- **%s** (ID: %s)\n", strField(rec, "Name"), strField(rec, "Id")))
+		sb.WriteString(fmt.Sprintf("  Employees: %s | Industry: %s | State: %s\n",
+			numField(rec, "NumberOfEmployees"), strField(rec, "Industry"), strField(rec, "BillingState")))
+		sb.WriteString(fmt.Sprintf("  Last Activity: %s | Website: %s\n\n",
+			strField(rec, "LastActivityDate"), strField(rec, "Website")))
+	}
+	return sb.String(), nil
+}
+
+// GetOpportunities returns Salesforce opportunities for an account (by ID or name).
+func GetOpportunities(ctx context.Context, cfg *config.Config, accountID, accountName string) (string, error) {
+	var soql string
+	if accountID != "" {
+		safe := strings.ReplaceAll(accountID, "'", "\\'")
+		soql = fmt.Sprintf(
+			"SELECT Id, Name, StageName, CloseDate, OwnerId, Owner.Name, Amount FROM Opportunity WHERE AccountId = '%s' ORDER BY CloseDate DESC LIMIT 10",
+			safe,
+		)
+	} else if accountName != "" {
+		safe := strings.ReplaceAll(accountName, "'", "\\'")
+		soql = fmt.Sprintf(
+			"SELECT Id, Name, StageName, CloseDate, OwnerId, Owner.Name, Amount, Account.Name FROM Opportunity WHERE Account.Name LIKE '%%%s%%' ORDER BY CloseDate DESC LIMIT 10",
+			safe,
+		)
+	} else {
+		return "", fmt.Errorf("provide either account_id or account_name")
+	}
+
+	result, err := sfGet(ctx, cfg, soql)
+	if err != nil {
+		return "", err
+	}
+
+	records := extractRecords(result)
+	if len(records) == 0 {
+		name := accountID
+		if accountName != "" {
+			name = accountName
+		}
+		return fmt.Sprintf("No Salesforce opportunities found for '%s'. Account appears to be greenfield.", name), nil
+	}
+
+	var sb strings.Builder
+	name := accountID
+	if accountName != "" {
+		name = accountName
+	}
+	sb.WriteString(fmt.Sprintf("Salesforce opportunities for '%s' (%d found):\n\n", name, len(records)))
+	for _, rec := range records {
+		stage := strField(rec, "StageName")
+		sb.WriteString(fmt.Sprintf("- **%s**\n", strField(rec, "Name")))
+		sb.WriteString(fmt.Sprintf("  Stage: %s | Close Date: %s | Owner: %s\n\n",
+			stage, strField(rec, "CloseDate"), ownerName(rec)))
+	}
+	return sb.String(), nil
+}
+
+// GetContacts returns Salesforce contacts for an account.
+func GetContacts(ctx context.Context, cfg *config.Config, accountID, accountName string) (string, error) {
+	var soql string
+	if accountID != "" {
+		safe := strings.ReplaceAll(accountID, "'", "\\'")
+		soql = fmt.Sprintf(
+			"SELECT Id, FirstName, LastName, Title, Email, Phone, LastActivityDate FROM Contact WHERE AccountId = '%s' ORDER BY LastActivityDate DESC NULLS LAST LIMIT 20",
+			safe,
+		)
+	} else if accountName != "" {
+		safe := strings.ReplaceAll(accountName, "'", "\\'")
+		soql = fmt.Sprintf(
+			"SELECT Id, FirstName, LastName, Title, Email, Phone, LastActivityDate, Account.Name FROM Contact WHERE Account.Name LIKE '%%%s%%' ORDER BY LastActivityDate DESC NULLS LAST LIMIT 20",
+			safe,
+		)
+	} else {
+		return "", fmt.Errorf("provide either account_id or account_name")
+	}
+
+	result, err := sfGet(ctx, cfg, soql)
+	if err != nil {
+		return "", err
+	}
+
+	records := extractRecords(result)
+	if len(records) == 0 {
+		return "No contacts found in Salesforce for this account.", nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Salesforce contacts (%d found):\n\n", len(records)))
+	for _, rec := range records {
+		email := strField(rec, "Email")
+		if email == "" {
+			email = "not in SF"
+		}
+		phone := strField(rec, "Phone")
+		if phone == "" {
+			phone = "not in SF"
+		}
+		sb.WriteString(fmt.Sprintf("- **%s %s** — %s\n", strField(rec, "FirstName"), strField(rec, "LastName"), strField(rec, "Title")))
+		sb.WriteString(fmt.Sprintf("  Email: %s | Phone: %s | Last Activity: %s\n\n",
+			email, phone, strField(rec, "LastActivityDate")))
+	}
+	return sb.String(), nil
+}
+
+// GetAccountActivity returns recent activity history for a Salesforce account.
+// Salesforce INACTIVITY (5-6+ months) is a HIGH PRIORITY signal — untouched territory.
+// Recent activity means someone is working the account — deprioritize.
+func GetAccountActivity(ctx context.Context, cfg *config.Config, accountID string, daysBack int) (string, error) {
+	if daysBack <= 0 {
+		daysBack = 180
+	}
+	safe := strings.ReplaceAll(accountID, "'", "\\'")
+	soql := fmt.Sprintf(
+		"SELECT Id, Subject, ActivityDate, Description, Type, WhoId FROM ActivityHistory WHERE WhatId = '%s' ORDER BY ActivityDate DESC LIMIT 10",
+		safe,
+	)
+
+	result, err := sfGet(ctx, cfg, soql)
+	if err != nil {
+		return "", err
+	}
+
+	records := extractRecords(result)
+	if len(records) == 0 {
+		return fmt.Sprintf("No activity history found for account %s. 🔥 HIGH PRIORITY SIGNAL: This account appears untouched — no SDR has engaged recently.", accountID), nil
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Activity history for account %s (%d records):\n\n", accountID, len(records)))
+	for _, rec := range records {
+		desc := strField(rec, "Description")
+		if len(desc) > 200 {
+			desc = desc[:200] + "..."
+		}
+		sb.WriteString(fmt.Sprintf("- **%s** (%s) — %s\n", strField(rec, "Subject"), strField(rec, "Type"), strField(rec, "ActivityDate")))
+		if desc != "" {
+			sb.WriteString(fmt.Sprintf("  %s\n", desc))
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String(), nil
+}
+
+// --- helpers ---
+
+func extractRecords(result map[string]any) []map[string]any {
+	raw, ok := result["records"]
+	if !ok {
+		return nil
+	}
+	arr, ok := raw.([]any)
+	if !ok {
+		return nil
+	}
+	out := make([]map[string]any, 0, len(arr))
+	for _, item := range arr {
+		if rec, ok := item.(map[string]any); ok {
+			out = append(out, rec)
+		}
+	}
+	return out
+}
+
+func strField(rec map[string]any, key string) string {
+	v, ok := rec[key]
+	if !ok || v == nil {
+		return ""
+	}
+	return fmt.Sprintf("%v", v)
+}
+
+func numField(rec map[string]any, key string) string {
+	v, ok := rec[key]
+	if !ok || v == nil {
+		return "unknown"
+	}
+	return fmt.Sprintf("%.0f", v)
+}
+
+func ownerName(rec map[string]any) string {
+	owner, ok := rec["Owner"].(map[string]any)
+	if !ok {
+		return ""
+	}
+	return strField(owner, "Name")
+}
+
+func truncate(s string, max int) string {
+	if len(s) <= max {
+		return s
+	}
+	return s[:max] + "..."
+}
