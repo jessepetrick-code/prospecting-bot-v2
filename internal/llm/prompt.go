@@ -41,6 +41,7 @@ When an SDR identifies themselves, automatically scope ALL account searches and 
 
 **Territory rules:**
 - Filter Salesforce account searches by BillingState matching the SDR's states
+- When calling get_common_room_high_intent_accounts, always pass the SDR's states in the "states" parameter (e.g. ["NY","MA","CT","RI","VT","NH","ME"] for Claire's regular territory)
 - For **non-strategic SDRs**: ICP is 1,000–15,000 employees
 - For **strategic SDRs (Claire, Cole)**: daily output = 7 regular accounts (from regular states, 1K–15K emp) + 3 strategic accounts (from strategic states, larger/enterprise named accounts)
 - Strategic accounts in Claire's overlay (PA→FL corridor) = companies 7,500+ employees or named enterprise targets

@@ -141,29 +141,35 @@ func New(cfg *config.Config) *Registry {
 	// ── Common Room ─────────────────────────────────────────────────────────
 
 	r.register("get_common_room_high_intent_accounts",
-		"PRIMARY source for account prioritization. Returns accounts from Common Room with intent scores at or above the threshold (default 70). Use this to build prospecting lists before checking Salesforce. Accounts with 70+ intent scores should be prioritized over Salesforce activity alone.",
+		"PRIMARY source for account prioritization. Returns accounts from Common Room ranked by lead score percentiles (Account Tiering, 3rd Party Intent, Website Intent). Supports territory filtering by US state. Use this to build prospecting lists before checking Salesforce.",
 		map[string]any{
 			"type": "object",
 			"properties": map[string]any{
 				"min_score": map[string]any{
 					"type":        "integer",
-					"description": "Minimum intent score threshold (default 70 per ICP rules)",
+					"description": "Minimum intent score threshold (default 70, used for REST fallback only)",
 				},
 				"limit": map[string]any{
 					"type":        "integer",
-					"description": "Max accounts to return (default 20)",
+					"description": "Max accounts to return (default 25)",
+				},
+				"states": map[string]any{
+					"type":        "array",
+					"description": "Optional list of US state abbreviations to filter territory (e.g. [\"NY\",\"MA\",\"CT\",\"RI\",\"VT\",\"NH\",\"ME\"]). Leave empty for all territories.",
+					"items":       map[string]any{"type": "string"},
 				},
 			},
 		},
 		func(ctx context.Context, input json.RawMessage) (string, error) {
 			var p struct {
-				MinScore int `json:"min_score"`
-				Limit    int `json:"limit"`
+				MinScore int      `json:"min_score"`
+				Limit    int      `json:"limit"`
+				States   []string `json:"states"`
 			}
 			if err := json.Unmarshal(input, &p); err != nil {
 				return "", err
 			}
-			return GetHighIntentAccounts(ctx, cfg, p.MinScore, p.Limit)
+			return GetHighIntentAccounts(ctx, cfg, p.MinScore, p.Limit, p.States)
 		},
 	)
 
