@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"log/slog"
 	"os"
@@ -39,7 +38,11 @@ func main() {
 			os.Exit(1)
 		}
 
-		b := bot.New(cfg)
+		b, err := bot.New(cfg)
+		if err != nil {
+			slog.Error("bot init error", "err", err)
+			os.Exit(1)
+		}
 
 		sched := scheduler.New(cfg, b)
 		if err := sched.Start(); err != nil {
@@ -48,12 +51,19 @@ func main() {
 		}
 		defer sched.Stop()
 
-		ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-		defer stop()
+		sig := make(chan os.Signal, 1)
+		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
 
 		slog.Info("C1ProspectingBot v2 starting", "channel", cfg.SlackChannel, "schedule", cfg.ScheduleCron)
 
-		if err := b.Run(ctx); err != nil {
+		go func() {
+			<-sig
+			slog.Info("shutting down")
+			sched.Stop()
+			os.Exit(0)
+		}()
+
+		if err := b.Run(); err != nil {
 			slog.Error("bot error", "err", err)
 			os.Exit(1)
 		}
