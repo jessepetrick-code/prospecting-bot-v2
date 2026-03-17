@@ -98,3 +98,44 @@ func Load() (*Config, error) {
 
 	return cfg, nil
 }
+
+// LoadPartial loads config without requiring Slack tokens — used by CLI mode.
+// Only ANTHROPIC_API_KEY is required; all other keys are optional.
+func LoadPartial() (*Config, error) {
+	_ = godotenv.Load()
+
+	cfg := &Config{
+		SlackBotToken:         os.Getenv("SLACK_BOT_TOKEN"),
+		SlackAppToken:         os.Getenv("SLACK_APP_TOKEN"),
+		SlackChannel:          os.Getenv("SLACK_CHANNEL"),
+		AnthropicAPIKey:       os.Getenv("ANTHROPIC_API_KEY"),
+		SFInstanceURL:         os.Getenv("SF_INSTANCE_URL"),
+		SFAccessToken:         os.Getenv("SF_ACCESS_TOKEN"),
+		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
+		CommonRoomCommunityID: os.Getenv("COMMONROOM_COMMUNITY_ID"),
+		LushaAPIKey:           os.Getenv("LUSHA_API_KEY"),
+		ApolloAPIKey:          os.Getenv("APOLLO_API_KEY"),
+		GoogleClientID:        os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:    os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRefreshToken:    os.Getenv("GOOGLE_REFRESH_TOKEN"),
+		GoogleDriveFolderID:   os.Getenv("GOOGLE_DRIVE_FOLDER_ID"),
+		GongAccessKey:         os.Getenv("GONG_ACCESS_KEY"),
+		GongAccessKeySecret:   os.Getenv("GONG_ACCESS_KEY_SECRET"),
+		NotionToken:           os.Getenv("NOTION_TOKEN"),
+		BraveSearchAPIKey:     os.Getenv("BRAVE_SEARCH_API_KEY"),
+		ScheduleCron:          os.Getenv("SCHEDULE_CRON"),
+	}
+
+	if cfg.ScheduleCron == "" {
+		cfg.ScheduleCron = "0 6 * * 1-5"
+	}
+	if cfg.SlackChannel == "" {
+		cfg.SlackChannel = "ai-prospecting-v2"
+	}
+
+	if cfg.AnthropicAPIKey == "" {
+		return nil, fmt.Errorf("missing required env var: ANTHROPIC_API_KEY")
+	}
+
+	return cfg, nil
+}

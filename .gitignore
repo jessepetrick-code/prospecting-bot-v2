@@ -1,6 +1,6 @@
 # Binaries
 bin/
-bot
+/bot
 
 # Environment — never commit real credentials
 .env
