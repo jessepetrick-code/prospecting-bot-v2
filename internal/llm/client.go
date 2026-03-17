@@ -1,8 +1,10 @@
 package llm
 
 import (
+	"context"
+
 	"github.com/anthropics/anthropic-sdk-go"
-	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/anthropics/anthropic-sdk-go/bedrock"
 
 	"github.com/conductorone/prospecting-bot/internal/config"
 )
@@ -12,8 +14,11 @@ type Client struct {
 	api *anthropic.Client
 }
 
-// New creates a new LLM client using the API key from config.
+// New creates a new LLM client backed by AWS Bedrock.
+// Auth is sourced from the AWS_BEARER_TOKEN_BEDROCK environment variable.
 func New(cfg *config.Config) *Client {
-	api := anthropic.NewClient(option.WithAPIKey(cfg.AnthropicAPIKey))
+	api := anthropic.NewClient(
+		bedrock.WithLoadDefaultConfig(context.Background()),
+	)
 	return &Client{api: &api}
 }

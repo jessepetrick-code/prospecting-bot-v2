@@ -14,8 +14,9 @@ type Config struct {
 	SlackAppToken string
 	SlackChannel  string
 
-	// Anthropic
-	AnthropicAPIKey string
+	// AWS Bedrock
+	AWSBedrockBearerToken string
+	AWSRegion             string
 
 	// Salesforce
 	SFInstanceURL string
@@ -60,9 +61,10 @@ func Load() (*Config, error) {
 		SlackBotToken:       os.Getenv("SLACK_BOT_TOKEN"),
 		SlackAppToken:       os.Getenv("SLACK_APP_TOKEN"),
 		SlackChannel:        os.Getenv("SLACK_CHANNEL"),
-		AnthropicAPIKey:     os.Getenv("ANTHROPIC_API_KEY"),
-		SFInstanceURL:       os.Getenv("SF_INSTANCE_URL"),
-		SFAccessToken:       os.Getenv("SF_ACCESS_TOKEN"),
+		AWSBedrockBearerToken: os.Getenv("AWS_BEARER_TOKEN_BEDROCK"),
+		AWSRegion:             os.Getenv("AWS_REGION"),
+		SFInstanceURL:         os.Getenv("SF_INSTANCE_URL"),
+		SFAccessToken:         os.Getenv("SF_ACCESS_TOKEN"),
 		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
 		CommonRoomCommunityID: os.Getenv("COMMONROOM_COMMUNITY_ID"),
 		LushaAPIKey:         os.Getenv("LUSHA_API_KEY"),
@@ -84,11 +86,14 @@ func Load() (*Config, error) {
 	if cfg.SlackChannel == "" {
 		cfg.SlackChannel = "ai-prospecting-v2"
 	}
+	if cfg.AWSRegion == "" {
+		cfg.AWSRegion = "us-west-2"
+	}
 
 	required := []struct{ name, value string }{
 		{"SLACK_BOT_TOKEN", cfg.SlackBotToken},
 		{"SLACK_APP_TOKEN", cfg.SlackAppToken},
-		{"ANTHROPIC_API_KEY", cfg.AnthropicAPIKey},
+		{"AWS_BEARER_TOKEN_BEDROCK", cfg.AWSBedrockBearerToken},
 	}
 	for _, r := range required {
 		if r.value == "" {
@@ -100,7 +105,7 @@ func Load() (*Config, error) {
 }
 
 // LoadPartial loads config without requiring Slack tokens — used by CLI mode.
-// Only ANTHROPIC_API_KEY is required; all other keys are optional.
+// Only AWS_BEARER_TOKEN_BEDROCK and AWS_REGION are required; all other keys are optional.
 func LoadPartial() (*Config, error) {
 	_ = godotenv.Load()
 
@@ -108,7 +113,8 @@ func LoadPartial() (*Config, error) {
 		SlackBotToken:         os.Getenv("SLACK_BOT_TOKEN"),
 		SlackAppToken:         os.Getenv("SLACK_APP_TOKEN"),
 		SlackChannel:          os.Getenv("SLACK_CHANNEL"),
-		AnthropicAPIKey:       os.Getenv("ANTHROPIC_API_KEY"),
+		AWSBedrockBearerToken: os.Getenv("AWS_BEARER_TOKEN_BEDROCK"),
+		AWSRegion:             os.Getenv("AWS_REGION"),
 		SFInstanceURL:         os.Getenv("SF_INSTANCE_URL"),
 		SFAccessToken:         os.Getenv("SF_ACCESS_TOKEN"),
 		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
@@ -132,9 +138,12 @@ func LoadPartial() (*Config, error) {
 	if cfg.SlackChannel == "" {
 		cfg.SlackChannel = "ai-prospecting-v2"
 	}
+	if cfg.AWSRegion == "" {
+		cfg.AWSRegion = "us-west-2"
+	}
 
-	if cfg.AnthropicAPIKey == "" {
-		return nil, fmt.Errorf("missing required env var: ANTHROPIC_API_KEY")
+	if cfg.AWSBedrockBearerToken == "" {
+		return nil, fmt.Errorf("missing required env var: AWS_BEARER_TOKEN_BEDROCK")
 	}
 
 	return cfg, nil

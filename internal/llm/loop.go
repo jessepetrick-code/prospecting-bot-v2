@@ -13,7 +13,8 @@ import (
 )
 
 const (
-	model     = anthropic.ModelClaudeOpus4_6
+	// Bedrock cross-region inference profile for Claude Opus 4.6.
+	model     = "us.anthropic.claude-opus-4-6-20251101-v1:0"
 	maxTokens = int64(4096)
 	maxIter   = 20 // safety cap on agentic loop iterations
 )
