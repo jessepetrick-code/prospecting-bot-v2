@@ -98,3 +98,29 @@ func Load() (*Config, error) {
 
 	return cfg, nil
 }
+
+// LoadPartial reads config without enforcing required vars (for CLI mode).
+func LoadPartial() *Config {
+	_ = godotenv.Load()
+	return &Config{
+		SlackBotToken:       os.Getenv("SLACK_BOT_TOKEN"),
+		SlackAppToken:       os.Getenv("SLACK_APP_TOKEN"),
+		SlackChannel:        os.Getenv("SLACK_CHANNEL"),
+		AnthropicAPIKey:     os.Getenv("ANTHROPIC_API_KEY"),
+		SFInstanceURL:       os.Getenv("SF_INSTANCE_URL"),
+		SFAccessToken:       os.Getenv("SF_ACCESS_TOKEN"),
+		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
+		CommonRoomCommunityID: os.Getenv("COMMONROOM_COMMUNITY_ID"),
+		LushaAPIKey:         os.Getenv("LUSHA_API_KEY"),
+		ApolloAPIKey:        os.Getenv("APOLLO_API_KEY"),
+		GoogleClientID:      os.Getenv("GOOGLE_CLIENT_ID"),
+		GoogleClientSecret:  os.Getenv("GOOGLE_CLIENT_SECRET"),
+		GoogleRefreshToken:  os.Getenv("GOOGLE_REFRESH_TOKEN"),
+		GoogleDriveFolderID: os.Getenv("GOOGLE_DRIVE_FOLDER_ID"),
+		GongAccessKey:       os.Getenv("GONG_ACCESS_KEY"),
+		GongAccessKeySecret: os.Getenv("GONG_ACCESS_KEY_SECRET"),
+		NotionToken:         os.Getenv("NOTION_TOKEN"),
+		BraveSearchAPIKey:   os.Getenv("BRAVE_SEARCH_API_KEY"),
+		ScheduleCron:        "0 6 * * 1-5",
+	}
+}
