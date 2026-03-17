@@ -82,7 +82,7 @@ func Load() (*Config, error) {
 		cfg.ScheduleCron = "0 6 * * 1-5"
 	}
 	if cfg.SlackChannel == "" {
-		cfg.SlackChannel = "ai-prospecting"
+		cfg.SlackChannel = "ai-prospecting-v2"
 	}
 
 	required := []struct{ name, value string }{
