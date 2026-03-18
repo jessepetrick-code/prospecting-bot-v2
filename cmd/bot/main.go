@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"log/slog"
 	"os"
@@ -23,7 +24,7 @@ func main() {
 
 	switch *mode {
 	case "cli":
-		// CLI mode only requires ANTHROPIC_API_KEY — Slack tokens not needed.
+		// CLI mode only requires AWS_BEARER_TOKEN_BEDROCK — Slack tokens not needed.
 		cfg, err := config.LoadPartial()
 		if err != nil {
 			slog.Error("config error", "err", err)
@@ -38,11 +39,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		b, err := bot.New(cfg)
-		if err != nil {
-			slog.Error("bot init error", "err", err)
-			os.Exit(1)
-		}
+		b := bot.New(cfg)
 
 		sched := scheduler.New(cfg, b)
 		if err := sched.Start(); err != nil {
@@ -50,6 +47,9 @@ func main() {
 			os.Exit(1)
 		}
 		defer sched.Stop()
+
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		sig := make(chan os.Signal, 1)
 		signal.Notify(sig, os.Interrupt, syscall.SIGTERM)
@@ -59,11 +59,11 @@ func main() {
 		go func() {
 			<-sig
 			slog.Info("shutting down")
+			cancel()
 			sched.Stop()
-			os.Exit(0)
 		}()
 
-		if err := b.Run(); err != nil {
+		if err := b.Run(ctx); err != nil {
 			slog.Error("bot error", "err", err)
 			os.Exit(1)
 		}
