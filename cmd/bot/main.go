@@ -18,8 +18,12 @@ func main() {
 	mode := flag.String("mode", "slack", "Run mode: 'slack' (default) or 'cli' for local terminal testing")
 	flag.Parse()
 
+	logLevel := slog.LevelInfo
+	if os.Getenv("DEBUG") != "" {
+		logLevel = slog.LevelDebug
+	}
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: slog.LevelInfo,
+		Level: logLevel,
 	})))
 
 	switch *mode {

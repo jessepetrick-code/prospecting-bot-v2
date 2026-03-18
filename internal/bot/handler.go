@@ -57,20 +57,40 @@ func (b *Bot) handleEvents(ctx context.Context) {
 			return
 		case evt, ok := <-b.socket.Events:
 			if !ok {
+				slog.Debug("socket events channel closed")
 				return
 			}
+			slog.Debug("socket event received", "type", evt.Type)
 			switch evt.Type {
 			case socketmode.EventTypeEventsAPI:
 				eventsAPI, ok := evt.Data.(slackevents.EventsAPIEvent)
 				if !ok {
+					slog.Debug("failed to cast event data to EventsAPIEvent", "data_type", fmt.Sprintf("%T", evt.Data))
 					continue
 				}
+				slog.Debug("events API event",
+					"api_type", eventsAPI.Type,
+					"inner_event_type", eventsAPI.InnerEvent.Type,
+				)
 				b.socket.Ack(*evt.Request)
 
 				if ev, ok := eventsAPI.InnerEvent.Data.(*slackevents.AppMentionEvent); ok {
+					slog.Debug("dispatching app mention", "user", ev.User, "channel", ev.Channel)
 					go b.handleMention(ev)
+				} else {
+					slog.Debug("inner event is not AppMentionEvent",
+						"inner_type", eventsAPI.InnerEvent.Type,
+						"data_type", fmt.Sprintf("%T", eventsAPI.InnerEvent.Data),
+					)
 				}
+			case socketmode.EventTypeConnecting:
+				slog.Debug("socket mode connecting")
+			case socketmode.EventTypeConnected:
+				slog.Debug("socket mode connected")
+			case socketmode.EventTypeDisconnect:
+				slog.Debug("socket mode disconnected")
 			default:
+				slog.Debug("unhandled event type, acking", "type", evt.Type)
 				// Acknowledge other events to prevent retries.
 				if evt.Request != nil {
 					b.socket.Ack(*evt.Request)
@@ -81,8 +101,10 @@ func (b *Bot) handleEvents(ctx context.Context) {
 }
 
 func (b *Bot) handleMention(ev *slackevents.AppMentionEvent) {
+	slog.Debug("handling mention", "raw_text", ev.Text, "user", ev.User, "channel", ev.Channel, "ts", ev.TimeStamp)
 	text := stripMention(ev.Text)
 	if text == "" {
+		slog.Debug("mention text empty after stripping, ignoring")
 		return
 	}
 
