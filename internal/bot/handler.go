@@ -27,7 +27,7 @@ type Bot struct {
 }
 
 // New creates a Bot connected to Slack via Socket Mode.
-func New(cfg *config.Config) (*Bot, error) {
+func New(cfg *config.Config) *Bot {
 	api := slack.New(
 		cfg.SlackBotToken,
 		slack.OptionAppLevelToken(cfg.SlackAppToken),
@@ -41,32 +41,40 @@ func New(cfg *config.Config) (*Bot, error) {
 		llm:      llm.New(cfg),
 		registry: tools.New(cfg),
 		cfg:      cfg,
-	}, nil
+	}
 }
 
-// Run starts the Socket Mode event loop (blocks until disconnected).
-func (b *Bot) Run() error {
-	go b.handleEvents()
-	return b.socket.Run()
+// Run starts the Socket Mode event loop (blocks until ctx is cancelled).
+func (b *Bot) Run(ctx context.Context) error {
+	go b.handleEvents(ctx)
+	return b.socket.RunContext(ctx)
 }
 
-func (b *Bot) handleEvents() {
-	for evt := range b.socket.Events {
-		switch evt.Type {
-		case socketmode.EventTypeEventsAPI:
-			eventsAPI, ok := evt.Data.(slackevents.EventsAPIEvent)
+func (b *Bot) handleEvents(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case evt, ok := <-b.socket.Events:
 			if !ok {
-				continue
+				return
 			}
-			b.socket.Ack(*evt.Request)
-
-			if ev, ok := eventsAPI.InnerEvent.Data.(*slackevents.AppMentionEvent); ok {
-				go b.handleMention(ev)
-			}
-		default:
-			// Acknowledge other events to prevent retries
-			if evt.Request != nil {
+			switch evt.Type {
+			case socketmode.EventTypeEventsAPI:
+				eventsAPI, ok := evt.Data.(slackevents.EventsAPIEvent)
+				if !ok {
+					continue
+				}
 				b.socket.Ack(*evt.Request)
+
+				if ev, ok := eventsAPI.InnerEvent.Data.(*slackevents.AppMentionEvent); ok {
+					go b.handleMention(ev)
+				}
+			default:
+				// Acknowledge other events to prevent retries.
+				if evt.Request != nil {
+					b.socket.Ack(*evt.Request)
+				}
 			}
 		}
 	}
