@@ -65,26 +65,34 @@ func (b *Bot) resolveChannel() string {
 		return b.channelID
 	}
 
-	// Look up channel by name
+	// Look up channel by name, paginating through all results
 	slog.Debug("looking up channel by name", "channel_name", b.cfg.SlackChannel)
 	params := &slack.GetConversationsParameters{
 		Types:           []string{"public_channel", "private_channel"},
 		Limit:           200,
 		ExcludeArchived: true,
 	}
-	channels, _, err := b.client.GetConversations(params)
-	if err != nil {
-		slog.Error("failed to list channels", "err", err)
-		return ""
-	}
-	slog.Debug("fetched channel list", "count", len(channels))
-	for _, ch := range channels {
-		if ch.Name == b.cfg.SlackChannel {
-			slog.Debug("resolved channel name to ID", "name", b.cfg.SlackChannel, "id", ch.ID)
-			b.channelID = ch.ID
-			return b.channelID
+	total := 0
+	for {
+		channels, cursor, err := b.client.GetConversations(params)
+		if err != nil {
+			slog.Error("failed to list channels", "err", err)
+			return ""
 		}
+		total += len(channels)
+		slog.Debug("fetched channel page", "count", len(channels), "total", total)
+		for _, ch := range channels {
+			if ch.Name == b.cfg.SlackChannel {
+				slog.Debug("resolved channel name to ID", "name", b.cfg.SlackChannel, "id", ch.ID)
+				b.channelID = ch.ID
+				return b.channelID
+			}
+		}
+		if cursor == "" {
+			break
+		}
+		params.Cursor = cursor
 	}
-	slog.Error("channel not found in list", "channel_name", b.cfg.SlackChannel, "fetched_count", len(channels))
+	slog.Error("channel not found in list", "channel_name", b.cfg.SlackChannel, "fetched_count", total)
 	return ""
 }
