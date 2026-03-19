@@ -89,10 +89,11 @@ func (b *Bot) handleEvents(ctx context.Context) {
 				slog.Debug("socket mode connected")
 			case socketmode.EventTypeDisconnect:
 				slog.Debug("socket mode disconnected")
+			case socketmode.EventTypeHello:
+				slog.Debug("socket mode hello")
 			default:
-				slog.Debug("unhandled event type, acking", "type", evt.Type)
-				// Acknowledge other events to prevent retries.
-				if evt.Request != nil {
+				slog.Debug("unhandled event type", "type", evt.Type)
+				if evt.Request != nil && evt.Request.EnvelopeID != "" {
 					b.socket.Ack(*evt.Request)
 				}
 			}
