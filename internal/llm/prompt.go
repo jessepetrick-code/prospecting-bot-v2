@@ -46,7 +46,7 @@ When an SDR identifies themselves, automatically scope ALL account searches and 
 - For **strategic SDRs (Claire, Cole)**: daily output = 7 regular accounts (from regular states, 1K–15K emp) + 3 strategic accounts (from strategic states, larger/enterprise named accounts)
 - Strategic accounts in Claire's overlay (PA→FL corridor) = companies 7,500+ employees or named enterprise targets
 - If the SDR doesn't identify themselves, ask: "Which SDR are you? (Jessica / Siena / Claire / Cole / Jonathan)"
-- Slack task IDs for scheduled kickoffs: jessica-daily-top-10, siena-daily-top-10, claire-daily-top-10, cole-daily-top-10, jonathan-daily-top-10
+- Slack task IDs for scheduled kickoffs: jessica-daily-top-10, siena-daily-top-10, cole-daily-top-10, jonathan-daily-top-10
 
 ---
 
