@@ -218,6 +218,69 @@ func GetAccountActivity(ctx context.Context, cfg *config.Config, accountID strin
 	return sb.String(), nil
 }
 
+// QuerySalesforce executes an arbitrary SOQL query and returns the results.
+// Use this for any query requiring custom fields, specific filters, or objects
+// not covered by the other Salesforce tools.
+func QuerySalesforce(ctx context.Context, cfg *config.Config, soql string) (string, error) {
+	result, err := sfGet(ctx, cfg, soql)
+	if err != nil {
+		return "", err
+	}
+
+	records := extractRecords(result)
+	totalSize := 0
+	if v, ok := result["totalSize"].(float64); ok {
+		totalSize = int(v)
+	}
+
+	if len(records) == 0 {
+		return "Salesforce query returned no records.", nil
+	}
+
+	// Collect all field names across records (preserves encounter order via slice+set).
+	seen := map[string]bool{}
+	var fields []string
+	for _, rec := range records {
+		for k := range rec {
+			if k == "attributes" {
+				continue
+			}
+			if !seen[k] {
+				seen[k] = true
+				fields = append(fields, k)
+			}
+		}
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("Salesforce query results (%d records", len(records)))
+	if totalSize > len(records) {
+		sb.WriteString(fmt.Sprintf(" of %d total — increase LIMIT to see more", totalSize))
+	}
+	sb.WriteString("):\n\n")
+
+	for i, rec := range records {
+		sb.WriteString(fmt.Sprintf("**Record %d:**\n", i+1))
+		for _, f := range fields {
+			v := rec[f]
+			if v == nil {
+				continue
+			}
+			// Nested objects (e.g. Owner.Name) — pretty-print as JSON.
+			switch val := v.(type) {
+			case map[string]any:
+				if b, err := json.Marshal(val); err == nil {
+					sb.WriteString(fmt.Sprintf("  %s: %s\n", f, string(b)))
+				}
+			default:
+				sb.WriteString(fmt.Sprintf("  %s: %v\n", f, val))
+			}
+		}
+		sb.WriteString("\n")
+	}
+	return sb.String(), nil
+}
+
 // --- helpers ---
 
 func extractRecords(result map[string]any) []map[string]any {

@@ -34,19 +34,17 @@ When an SDR identifies themselves, automatically scope ALL account searches and 
 | SDR | Regular States | Strategic States | Account Type |
 |-----|---------------|-----------------|--------------|
 | Jessica | CA, OR, WA, ID, MT, WY, AK | — | Non-strategic (1K–15K emp) |
-| Siena | MS, TN, AL, GA, SC, FL | — | Non-strategic (1K–15K emp) |
-| Claire Sulek | ME, VT, NH, NY, MA, CT, RI | PA, NJ, DE, MD, DC, VA, NC, SC, GA, FL | Strategic: 7 regular + 3 strategic per day |
+| Sumeet | ME, VT, NH, NY, MA, CT, RI | — | Non-strategic (1K–15K emp) |
 | Cole Pammer | PA, NJ, DE, MD, DC, VA, NC, SC, GA, FL, HI, CA | CA, OR, WA, ID, MT, WY, AK | Strategic: 7 regular + 3 strategic per day |
 | Jonathan | ND, SD, MN, IA, WI, IL, MI, IN, OH, KY, WV | — | Non-strategic (1K–15K emp) |
 
 **Territory rules:**
 - Filter Salesforce account searches by BillingState matching the SDR's states
-- When calling get_common_room_high_intent_accounts, always pass the SDR's states in the "states" parameter (e.g. ["NY","MA","CT","RI","VT","NH","ME"] for Claire's regular territory)
+- When calling get_common_room_high_intent_accounts, always pass the SDR's states in the "states" parameter (e.g. ["NY","MA","CT","RI","VT","NH","ME"] for Sumeet's territory)
 - For **non-strategic SDRs**: ICP is 1,000–15,000 employees
-- For **strategic SDRs (Claire, Cole)**: daily output = 7 regular accounts (from regular states, 1K–15K emp) + 3 strategic accounts (from strategic states, larger/enterprise named accounts)
-- Strategic accounts in Claire's overlay (PA→FL corridor) = companies 7,500+ employees or named enterprise targets
-- If the SDR doesn't identify themselves, ask: "Which SDR are you? (Jessica / Siena / Claire / Cole / Jonathan)"
-- Slack task IDs for scheduled kickoffs: jessica-daily-top-10, siena-daily-top-10, cole-daily-top-10, jonathan-daily-top-10
+- For **strategic SDRs (Cole)**: daily output = 7 regular accounts (from regular states, 1K–15K emp) + 3 strategic accounts (from strategic states, larger/enterprise named accounts)
+- Each Slack message is automatically prefixed with [SDR: Name] from their Slack profile — use this to scope their territory without asking
+- Slack task IDs for scheduled kickoffs: jessica-daily-top-10, sumeet-daily-top-10, cole-daily-top-10, jonathan-daily-top-10
 
 ---
 

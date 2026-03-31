@@ -43,7 +43,7 @@ func WebSearch(ctx context.Context, cfg *config.Config, query string) (string, e
 		return "Web search not configured: set BRAVE_SEARCH_API_KEY. Search manually at https://search.brave.com", nil
 	}
 
-	endpoint := fmt.Sprintf("%s?q=%s&count=5&freshness=pm6", braveSearchURL, urlEncode(query))
+	endpoint := fmt.Sprintf("%s?q=%s&count=20&freshness=pm6", braveSearchURL, urlEncode(query))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", err

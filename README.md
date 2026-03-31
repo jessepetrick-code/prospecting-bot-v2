@@ -151,11 +151,15 @@ oauth_config:
       - app_mentions:read
       - chat:write
       - channels:read
+      - channels:history
       - groups:read
+      - groups:history
 settings:
   event_subscriptions:
     bot_events:
       - app_mention
+      - message.channels
+      - message.groups
   interactivity:
     is_enabled: false
   socket_mode_enabled: true

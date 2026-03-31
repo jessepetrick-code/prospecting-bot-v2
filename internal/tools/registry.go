@@ -138,6 +138,29 @@ func New(cfg *config.Config) *Registry {
 		},
 	)
 
+	r.register("query_salesforce",
+		"Execute a raw SOQL query against Salesforce. Use this for any query requiring custom fields, specific filters, date ranges, or objects not covered by the other Salesforce tools (e.g. Lead, Task, Event, Campaign, custom objects). Construct valid SOQL and pass it directly. Use the specialized tools (search_salesforce_accounts, check_salesforce_opportunities, get_salesforce_contacts, get_salesforce_account_activity) for their intended purposes — use this tool when those are insufficient.",
+		map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"soql": map[string]any{
+					"type":        "string",
+					"description": "A valid SOQL query string, e.g. \"SELECT Id, Name, CustomField__c FROM Account WHERE CreatedDate = LAST_N_DAYS:30 LIMIT 50\"",
+				},
+			},
+			"required": []string{"soql"},
+		},
+		func(ctx context.Context, input json.RawMessage) (string, error) {
+			var p struct {
+				SOQL string `json:"soql"`
+			}
+			if err := json.Unmarshal(input, &p); err != nil {
+				return "", err
+			}
+			return QuerySalesforce(ctx, cfg, p.SOQL)
+		},
+	)
+
 	// ── Common Room ─────────────────────────────────────────────────────────
 
 	r.register("get_common_room_high_intent_accounts",
