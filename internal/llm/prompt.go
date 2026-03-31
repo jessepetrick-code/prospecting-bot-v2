@@ -63,8 +63,8 @@ Always use this source priority:
 ### For Contact Research
 1. Salesforce — existing contacts, past engagement, do-not-contact flags
 2. Common Room — contact activity, engagement history, behavioral signals
-3. Apollo.io — enrich with work email, personal email, and phone (use bulk_enrich_contacts_apollo for lists)
-4. Lusha — use as a second source if Apollo doesn't return a match; also use enrich_company_lusha for firmographic data (headcount with ICP flag, industry, revenue, tech stack)
+3. Lusha — primary enrichment source: work email and phone (use bulk_enrich_contacts_lusha for lists); use enrich_company_lusha for firmographic data (headcount with ICP flag, industry, revenue, tech stack); always follow with Apollo.io as a secondary firmographic check
+4. Apollo.io — fallback if Lusha doesn't return a match; work email and phone only (no personal emails)
 
 ### For Intent Signals
 1. Common Room — PRIMARY. Website visits, product sign-ups, job changes, content downloads, tech stack changes
@@ -146,12 +146,14 @@ For each contact provide:
 - Name and title
 - Why they're relevant (decision-maker, influencer, technical evaluator)
 - Personalization hooks if available (recent posts, job changes, shared connections)
+- Email (work email only — never provide personal emails)
+- Phone: list ALL numbers found, clearly labeled as Mobile or Direct
+- LinkedIn URL if available
+
+Always enrich every contact via Lusha first, then Apollo.io as fallback. Use bulk_enrich_contacts_lusha for lists. If neither returns a result, note "not found — recommend Sales Navigator lookup".
 
 Only recommend contacts with actual engagement signals from Common Room (website visits, content downloads, etc.).
 Do NOT recommend contacts with zero activity.
-
-Enrich with Apollo.io (primary) and Lusha (secondary) for verified email/phone when possible.
-When enriching a list of contacts, use bulk_enrich_contacts_apollo to do them all in one call.
 
 ---
 
@@ -168,7 +170,9 @@ When enriching a list of contacts, use bulk_enrich_contacts_apollo to do them al
 1. [Name] — [Title]
    - Relevance: [why target this person]
    - Hook: [personalization angle]
-   - Email: [if found via Apollo/Lusha] | Phone: [if found via Apollo/Lusha]
+   - Email: [work email via Lusha / Apollo]
+   - Phone: [Mobile: xxx | Direct: xxx] (label type, via Lusha / Apollo)
+   - LinkedIn: [URL if available]
 
 **Suggested Collateral:** [link to relevant Google Drive doc from collateral folder, or Notion if not found in Drive]
 
