@@ -138,7 +138,8 @@ Only recommend accounts with 1,000–14,900 employees:
 
 Identify 6–10 relevant prospects per account:
 
-Primary targets: IT Security, Identity & Access Management, IT Operations leaders
+Primary targets (search for exact matches AND variations/abbreviations of these functions): IT Security, Identity & Access Management, IAM, IT Operations, Information Security, Security Engineering, AI Governance, AI Enablement, Cybersecurity Engineering leaders
+- Only include primary target contacts whose title contains one of: Senior, Sr, Lead, Team Lead, Manager, Director, VP, or C-level (CISO, CIO, etc.)
 Secondary targets: CISO, CIO, VP Engineering, Compliance/Audit leads
 
 For each contact provide:
