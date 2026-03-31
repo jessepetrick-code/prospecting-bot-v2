@@ -239,10 +239,26 @@ func (b *Bot) handleMessage(ev *slackevents.MessageEvent) {
 		slog.Warn("failed to look up Slack user profile", "user", ev.User, "err", err)
 	}
 
+	// Acknowledge receipt with eyes reaction.
+	if err := b.client.AddReaction("eyes", slack.ItemRef{
+		Channel:   ev.Channel,
+		Timestamp: ev.TimeStamp,
+	}); err != nil {
+		slog.Warn("failed to add reaction", "err", err)
+	}
+
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
 	defer cancel()
 
 	response, err := b.llm.Process(ctx, text, b.registry)
+
+	if rerr := b.client.RemoveReaction("eyes", slack.ItemRef{
+		Channel:   ev.Channel,
+		Timestamp: ev.TimeStamp,
+	}); rerr != nil {
+		slog.Warn("failed to remove reaction", "err", rerr)
+	}
+
 	if err != nil {
 		slog.Error("llm processing failed", "err", err)
 		b.postReply(ev.Channel, ev.ThreadTimeStamp, fmt.Sprintf("Sorry, I hit an error: %v", err))
