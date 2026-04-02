@@ -16,15 +16,16 @@ import (
 const sfAPIVersion = "v59.0"
 
 func sfGet(ctx context.Context, cfg *config.Config, soql string) (map[string]any, error) {
-	if cfg.SFInstanceURL == "" || cfg.SFAccessToken == "" {
-		return nil, fmt.Errorf("Salesforce not configured: set SF_INSTANCE_URL and SF_ACCESS_TOKEN")
+	token, err := getAccessToken(ctx, cfg)
+	if err != nil {
+		return nil, err
 	}
 	endpoint := fmt.Sprintf("%s/services/data/%s/query?q=%s", cfg.SFInstanceURL, sfAPIVersion, url.QueryEscape(soql))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+cfg.SFAccessToken)
+	req.Header.Set("Authorization", "Bearer "+token)
 	req.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{Timeout: 15 * time.Second}
