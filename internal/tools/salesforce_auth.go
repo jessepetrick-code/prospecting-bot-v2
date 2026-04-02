@@ -14,7 +14,12 @@ import (
 	"github.com/conductorone/prospecting-bot/internal/config"
 )
 
-const sfLoginURL = "https://login.salesforce.com/services/oauth2/token"
+// sfTokenURL returns the OAuth token endpoint for this org.
+// Salesforce orgs with My Domain enabled require using the My Domain URL,
+// not login.salesforce.com — otherwise you get "request not supported on this domain".
+func sfTokenURL(cfg *config.Config) string {
+	return cfg.SFInstanceURL + "/services/oauth2/token"
+}
 
 type sfTokenCache struct {
 	mu        sync.Mutex
@@ -67,7 +72,7 @@ func fetchClientCredentialsToken(ctx context.Context, cfg *config.Config) (strin
 	data.Set("client_id", cfg.SFClientID)
 	data.Set("client_secret", cfg.SFClientSecret)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sfLoginURL, strings.NewReader(data.Encode()))
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, sfTokenURL(cfg), strings.NewReader(data.Encode()))
 	if err != nil {
 		return "", time.Time{}, err
 	}
