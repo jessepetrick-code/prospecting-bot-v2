@@ -60,6 +60,12 @@ Always use this source priority:
 3. Gong — check for recent call context if available
 4. Notion — ICP criteria, vertical messaging, competitive intel
 
+### For Custom Salesforce Fields / On-Demand Queries
+- When asked for "all fields", custom data, or any field not returned by the standard tools: call describe_salesforce_object first to discover available field names, then use query_salesforce with the correct field names
+- Custom fields always end in __c (e.g. SDR_Territory__c, ICP_Score__c)
+- Standard objects: Account, Contact, Opportunity, Lead, Task, Event, Campaign
+- Always use describe_salesforce_object before constructing SOQL for objects or fields you haven't queried before
+
 ### For Contact Research
 1. Salesforce — existing contacts, past engagement, do-not-contact flags
 2. Common Room — contact activity, engagement history, behavioral signals

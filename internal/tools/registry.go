@@ -161,6 +161,29 @@ func New(cfg *config.Config) *Registry {
 		},
 	)
 
+	r.register("describe_salesforce_object",
+		"Discover all fields (standard AND custom) available on any Salesforce object. Call this BEFORE using query_salesforce when you need to know field names — especially for custom fields (ending in __c) or objects you haven't queried before. Works for standard objects (Account, Contact, Opportunity, Lead, Task, Event, Campaign) and any custom objects. Returns field API name, label, type, and whether it's custom.",
+		map[string]any{
+			"type": "object",
+			"properties": map[string]any{
+				"object_name": map[string]any{
+					"type":        "string",
+					"description": "Salesforce object API name, e.g. \"Account\", \"Contact\", \"Opportunity\", \"Lead\", or a custom object like \"My_Object__c\"",
+				},
+			},
+			"required": []string{"object_name"},
+		},
+		func(ctx context.Context, input json.RawMessage) (string, error) {
+			var p struct {
+				ObjectName string `json:"object_name"`
+			}
+			if err := json.Unmarshal(input, &p); err != nil {
+				return "", err
+			}
+			return DescribeSalesforceObject(ctx, cfg, p.ObjectName)
+		},
+	)
+
 	// ── Common Room ─────────────────────────────────────────────────────────
 
 	r.register("get_common_room_high_intent_accounts",

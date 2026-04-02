@@ -219,6 +219,92 @@ func GetAccountActivity(ctx context.Context, cfg *config.Config, accountID strin
 	return sb.String(), nil
 }
 
+// DescribeSalesforceObject returns all fields (standard and custom) for a Salesforce object.
+// Call this before query_salesforce when you need to know what fields are available,
+// especially for custom fields (ending in __c) or unfamiliar objects.
+func DescribeSalesforceObject(ctx context.Context, cfg *config.Config, objectName string) (string, error) {
+	token, err := getAccessToken(ctx, cfg)
+	if err != nil {
+		return "", err
+	}
+
+	safe := strings.ReplaceAll(objectName, "/", "")
+	endpoint := fmt.Sprintf("%s/services/data/%s/sobjects/%s/describe", cfg.SFInstanceURL, sfAPIVersion, safe)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", err
+	}
+	req.Header.Set("Authorization", "Bearer "+token)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{Timeout: 15 * time.Second}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		return "", fmt.Errorf("Salesforce auth failed (401): token may be expired")
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return fmt.Sprintf("Salesforce object '%s' not found. Check the API name (custom objects end in __c, e.g. 'My_Object__c').", objectName), nil
+	}
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Sprintf("Salesforce describe error %d for '%s': %s", resp.StatusCode, objectName, truncate(string(body), 300)), nil
+	}
+
+	var describe struct {
+		Name   string `json:"name"`
+		Label  string `json:"label"`
+		Fields []struct {
+			Name        string `json:"name"`
+			Label       string `json:"label"`
+			Type        string `json:"type"`
+			Custom      bool   `json:"custom"`
+			Nillable    bool   `json:"nillable"`
+			Updateable  bool   `json:"updateable"`
+		} `json:"fields"`
+	}
+	if err := json.Unmarshal(body, &describe); err != nil {
+		return fmt.Sprintf("Salesforce: could not parse describe response for '%s'.", objectName), nil
+	}
+
+	var standard, custom []string
+	for _, f := range describe.Fields {
+		entry := fmt.Sprintf("  %-45s %-20s %s", f.Name, "("+f.Type+")", f.Label)
+		if f.Custom {
+			custom = append(custom, entry)
+		} else {
+			standard = append(standard, entry)
+		}
+	}
+
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("**Salesforce object: %s (%s)**\n", describe.Label, describe.Name))
+	sb.WriteString(fmt.Sprintf("Total fields: %d (%d standard, %d custom)\n\n", len(describe.Fields), len(standard), len(custom)))
+
+	if len(custom) > 0 {
+		sb.WriteString("**Custom Fields:**\n")
+		for _, f := range custom {
+			sb.WriteString(f + "\n")
+		}
+		sb.WriteString("\n")
+	}
+
+	sb.WriteString("**Standard Fields:**\n")
+	for _, f := range standard {
+		sb.WriteString(f + "\n")
+	}
+
+	return sb.String(), nil
+}
+
 // QuerySalesforce executes an arbitrary SOQL query and returns the results.
 // Use this for any query requiring custom fields, specific filters, or objects
 // not covered by the other Salesforce tools.
