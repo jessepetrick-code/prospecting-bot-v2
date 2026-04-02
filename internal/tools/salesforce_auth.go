@@ -14,11 +14,20 @@ import (
 	"github.com/conductorone/prospecting-bot/internal/config"
 )
 
+// sfBaseURL returns a sanitized Salesforce instance base URL (ensures https:// prefix, no trailing slash).
+func sfBaseURL(cfg *config.Config) string {
+	base := strings.TrimRight(cfg.SFInstanceURL, "/")
+	if !strings.HasPrefix(base, "https://") && !strings.HasPrefix(base, "http://") {
+		base = "https://" + base
+	}
+	return base
+}
+
 // sfTokenURL returns the OAuth token endpoint for this org.
 // Salesforce orgs with My Domain enabled require using the My Domain URL,
 // not login.salesforce.com — otherwise you get "request not supported on this domain".
 func sfTokenURL(cfg *config.Config) string {
-	return cfg.SFInstanceURL + "/services/oauth2/token"
+	return sfBaseURL(cfg) + "/services/oauth2/token"
 }
 
 type sfTokenCache struct {

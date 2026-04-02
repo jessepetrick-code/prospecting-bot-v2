@@ -20,7 +20,7 @@ func sfGet(ctx context.Context, cfg *config.Config, soql string) (map[string]any
 	if err != nil {
 		return nil, err
 	}
-	endpoint := fmt.Sprintf("%s/services/data/%s/query?q=%s", cfg.SFInstanceURL, sfAPIVersion, url.QueryEscape(soql))
+	endpoint := fmt.Sprintf("%s/services/data/%s/query?q=%s", sfBaseURL(cfg), sfAPIVersion, url.QueryEscape(soql))
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return nil, err
@@ -229,7 +229,7 @@ func DescribeSalesforceObject(ctx context.Context, cfg *config.Config, objectNam
 	}
 
 	safe := strings.ReplaceAll(objectName, "/", "")
-	endpoint := fmt.Sprintf("%s/services/data/%s/sobjects/%s/describe", cfg.SFInstanceURL, sfAPIVersion, safe)
+	endpoint := fmt.Sprintf("%s/services/data/%s/sobjects/%s/describe", sfBaseURL(cfg), sfAPIVersion, safe)
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		return "", err
