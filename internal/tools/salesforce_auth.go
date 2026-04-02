@@ -15,12 +15,13 @@ import (
 )
 
 // sfBaseURL returns a sanitized Salesforce instance base URL (ensures https:// prefix, no trailing slash).
+// Strips any existing scheme first to handle typos like "ttps://" or missing "h".
 func sfBaseURL(cfg *config.Config) string {
 	base := strings.TrimRight(cfg.SFInstanceURL, "/")
-	if !strings.HasPrefix(base, "https://") && !strings.HasPrefix(base, "http://") {
-		base = "https://" + base
+	if idx := strings.Index(base, "://"); idx != -1 {
+		base = base[idx+3:]
 	}
-	return base
+	return "https://" + base
 }
 
 // sfTokenURL returns the OAuth token endpoint for this org.
