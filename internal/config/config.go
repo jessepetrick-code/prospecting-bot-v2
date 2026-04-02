@@ -21,9 +21,8 @@ type Config struct {
 	// Salesforce
 	SFInstanceURL string
 	SFAccessToken string
-	SFClientID    string
-	SFUsername    string
-	SFPrivateKey  string
+	SFClientID     string
+	SFClientSecret string
 
 	// Common Room
 	CommonRoomAPIKey     string
@@ -69,8 +68,7 @@ func Load() (*Config, error) {
 		SFInstanceURL:         os.Getenv("SF_INSTANCE_URL"),
 		SFAccessToken:         os.Getenv("SF_ACCESS_TOKEN"),
 		SFClientID:            os.Getenv("SF_CLIENT_ID"),
-		SFUsername:            os.Getenv("SF_USERNAME"),
-		SFPrivateKey:          os.Getenv("SF_PRIVATE_KEY"),
+		SFClientSecret:        os.Getenv("SF_CLIENT_SECRET"),
 		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
 		CommonRoomCommunityID: os.Getenv("COMMONROOM_COMMUNITY_ID"),
 		LushaAPIKey:         os.Getenv("LUSHA_API_KEY"),
@@ -124,8 +122,7 @@ func LoadPartial() (*Config, error) {
 		SFInstanceURL:         os.Getenv("SF_INSTANCE_URL"),
 		SFAccessToken:         os.Getenv("SF_ACCESS_TOKEN"),
 		SFClientID:            os.Getenv("SF_CLIENT_ID"),
-		SFUsername:            os.Getenv("SF_USERNAME"),
-		SFPrivateKey:          os.Getenv("SF_PRIVATE_KEY"),
+		SFClientSecret:        os.Getenv("SF_CLIENT_SECRET"),
 		CommonRoomAPIKey:      os.Getenv("COMMONROOM_API_KEY"),
 		CommonRoomCommunityID: os.Getenv("COMMONROOM_COMMUNITY_ID"),
 		LushaAPIKey:           os.Getenv("LUSHA_API_KEY"),
